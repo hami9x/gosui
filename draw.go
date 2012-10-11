@@ -17,6 +17,16 @@ const (
 	degree = math.Pi / 180.0
 )
 
+func MakeDrawer(gc *draw2d.ImageGraphicContext, image *image.RGBA) *Drawer {
+	drawer := &Drawer{gc, image}
+	drawer.Init()
+	return drawer
+}
+
+func (d *Drawer) Init() {
+	draw2d.SetFontFolder("font/")
+}
+
 func (d *Drawer) DrawRoundedRect(x, y, width, height, radius float64) {
 	gc := d.Gc
 	gc.ArcTo(x+width-radius, y+radius, radius, radius, -90*degree, 90*degree)
@@ -27,6 +37,15 @@ func (d *Drawer) DrawRoundedRect(x, y, width, height, radius float64) {
 	gc.FillStroke()
 }
 
+func (d *Drawer) DrawText(str string, x, y float64, fontSize float64, fontData draw2d.FontData) {
+	gc := d.Gc
+	gc.FillStroke()
+	gc.MoveTo(x, y)
+	gc.SetFontSize(fontSize)
+	gc.SetFontData(fontData)
+	gc.FillString(str)
+}
+
 //Render OpenGL vertices from go standard Image
 func (d *Drawer) RenderToGL() {
 	img := d.Image
@@ -35,7 +54,7 @@ func (d *Drawer) RenderToGL() {
 	for y:=b.Min.Y; y<b.Max.Y; y++ {
 		for x:=b.Min.X; x<b.Max.X; x++ {
 			col := img.At(x, y)
-			r, g, b, a := GlColorFromRGBA(col.(color.RGBA))
+			r, g, b, a := GLColorFromRGBA(col.(color.RGBA))
 			gl.Color4f(r, g, b, a)
 			gl.Vertex2i(x, y)
 		}
@@ -44,7 +63,7 @@ func (d *Drawer) RenderToGL() {
 }
 
 //Convert RGBA color to an OpenGL-compatible value
-func GlColorFromRGBA(col color.RGBA) (float32, float32, float32, float32) {
+func GLColorFromRGBA(col color.RGBA) (float32, float32, float32, float32) {
 	r, g, b, _a := col.RGBA()
 	if _a == 0 {
 		return 0, 0, 0, 0

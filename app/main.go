@@ -62,8 +62,10 @@ func main() {
 		gc := draw2d.NewGraphicContext(img)
 		gc.SetFillColor(color.RGBA{0x80, 0x80, 0xFF, 0xFF})
 		gc.SetStrokeColor(color.RGBA{0x80, 0, 0, 0x80})
-		drawer := wego.Drawer{gc, img}
+		drawer := wego.MakeDrawer(gc, img)
 		drawer.DrawRoundedRect(10, 10, 100, 30, 10)
+		fontData := draw2d.FontData{"luxi", draw2d.FontFamilyMono, draw2d.FontStyleNormal}
+		drawer.DrawText("Awesome!", 100, 150, 25, fontData)
 		drawer.RenderToGL()
 		// Swap front and back rendering buffers. This also implicitly calls
 		// glfw.PollEvents(), so we have valid key/mouse/joystick states after
