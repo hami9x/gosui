@@ -3,10 +3,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"image"
 	"image/color"
 
 	"github.com/banthar/gl"
-	"code.google.com/p/draw2d/draw2dgl"
+	"code.google.com/p/draw2d/draw2d"
 	"github.com/jteeuwen/glfw"
 	"phaikawl/wego"
 )
@@ -52,15 +53,18 @@ func main() {
 	initGL(w, h)
 	// Start loop
 	running := true
+	/*o := true*/
 	for running {
 		// OpenGL rendering goes here.
 		resetGL()
 		w, h := glfw.WindowSize()
-		gc := draw2dgl.NewGraphicContext(w, h)
+		img := image.NewRGBA(image.Rect(0, 0, w, h))
+		gc := draw2d.NewGraphicContext(img)
 		gc.SetFillColor(color.RGBA{0x80, 0x80, 0xFF, 0xFF})
 		gc.SetStrokeColor(color.RGBA{0x80, 0, 0, 0x80})
-		drawer := wego.Drawer{gc}
+		drawer := wego.Drawer{gc, img}
 		drawer.DrawRoundedRect(10, 10, 100, 30, 10)
+		drawer.RenderToGL()
 		// Swap front and back rendering buffers. This also implicitly calls
 		// glfw.PollEvents(), so we have valid key/mouse/joystick states after
 		// this. This behavior can be disabled by calling glfw.Disable with the
