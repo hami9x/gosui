@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"image"
-	"image/color"
+	"time"
 
-	draw2d "code.google.com/p/draw2d/draw2dgl"
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
-	"github.com/phaikawl/gosui"
+	skia "github.com/phaikawl/gosui/skia"
 )
 
 func errorCallback(err glfw.ErrorCode, desc string) {
@@ -29,28 +27,22 @@ func main() {
 	}
 
 	window.MakeContextCurrent()
-
 	w, h := window.GetSize()
 	initGL(w, h)
+	b := new(skia.Backend)
+	b.Init(w, h)
+	gl.Clear(gl.COLOR_BUFFER_BIT)
+
 	for !window.ShouldClose() {
 		//Do OpenGL stuff
-		resetGL()
-		img := image.NewRGBA(image.Rect(0, 0, w, h))
-		gc := draw2d.NewGraphicContext(w, h)
-		gc.SetFillColor(color.RGBA{0x80, 0x80, 0xFF, 0xFF})
-		gc.SetStrokeColor(color.RGBA{0x80, 0, 0, 0x80})
-		// draw2d.SetFontFolder("font/")
-		drawer := gosui.MakeDrawer(gc, img)
-		drawer.DrawRoundedRect(0, 0, 100, 30, 10)
-		gc.SetFillColor(color.RGBA{0, 0, 0, 255})
-		gc.SetStrokeColor(color.RGBA{0, 0, 0, 255})
-		// fontData := draw2d.FontData{"luxi", draw2d.FontFamilyMono, draw2d.FontStyleNormal}
-		// drawer.DrawText("Awesome!", 10, 10, 10, fontData)
-		// drawer.RenderToGL()
-
+		b.StartLoop()
+		b.DrawButton(0, 0, 50, 20, 20)
+		b.EndLoop()
 		window.SwapBuffers()
 		glfw.PollEvents()
+		time.Sleep(200 * time.Millisecond)
 	}
+	b.Die()
 }
 
 func initGL(w, h int) {
@@ -61,17 +53,8 @@ func initGL(w, h int) {
 
 	gl.ShadeModel(gl.SMOOTH)
 	gl.ClearColor(1, 1, 1, 0)
-	gl.Enable(gl.SMOOTH)
 	gl.Enable(gl.BLEND)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.Disable(gl.DEPTH_TEST)
 	gl.Hint(gl.LINE_SMOOTH_HINT|gl.LINE_SMOOTH_HINT, gl.NICEST)
-}
-
-func resetGL() {
-	gl.Clear(gl.COLOR_BUFFER_BIT)
-
-	// Reset the matrix
-	gl.MatrixMode(gl.MODELVIEW)
-	gl.LoadIdentity()
 }
