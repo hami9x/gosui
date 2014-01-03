@@ -4,13 +4,11 @@ package skia
 // #include "gosui/skia.h"
 import "C"
 import (
-	"image/color"
+	gs "github.com/phaikawl/gosui"
+	"image"
 )
 
-type Color color.RGBA
-
-func (c Color) toSkColor() C.Color {
-	c.A *= 255
+func toSkColor(c gs.Color) C.Color {
 	return (C.Color)(C.ColorFromRGBA(C.int(c.R), C.int(c.G), C.int(c.B), C.int(c.A)))
 }
 
@@ -27,13 +25,24 @@ func (b *Backend) Init(w, h int) {
 	b.r = r
 }
 
-func (b *Backend) DrawButton(x, y, w, h, radii int) {
-	var rect C.Rect
-	rect.x, rect.y, rect.w, rect.h = C.int(x), C.int(y), C.int(w), C.int(h)
-	var paint C.Paint
-	paint.fillColor = Color{0, 0, 255, 1}.toSkColor()
-	paint.strokeColor = Color{255, 0, 0, 1}.toSkColor()
-	C.DrawRect(b.r, paint, rect, C.int(radii))
+func toCPoint(sp image.Point) (p C.Point) {
+	p.x = C.int(sp.X)
+	p.y = C.int(sp.Y)
+	return p
+}
+
+func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]image.Point, paint gs.Paint) {
+	var crect C.Rect
+	crect.min, crect.max = toCPoint(rect.Min), toCPoint(rect.Max)
+	var cpaint C.Paint
+	cpaint.fillColor = toSkColor(paint.FillColor)
+	cpaint.strokeColor = toSkColor(paint.StrokeColor)
+	cpaint.strokeWidth = C.int(paint.StrokeWidth)
+	var cRads [4]C.Point
+	for i := 0; i < 4; i += 1 {
+		cRads[i] = toCPoint(radiis[i])
+	}
+	C.DrawRect(b.r, cpaint, crect, (*C.Point)(&cRads[0]))
 }
 
 func (b *Backend) Die() {
@@ -48,12 +57,10 @@ func (b *Backend) Clear() {
 	C.Clear(b.r)
 }
 
-func (b *Backend) StartLoop() {
+func (b *Backend) Save() {
 	b.saveCnt = C.Save(b.r)
-	b.Clear()
 }
 
-func (b *Backend) EndLoop() {
+func (b *Backend) Restore() {
 	C.Restore(b.r, b.saveCnt)
-	b.Flush()
 }

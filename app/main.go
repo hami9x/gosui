@@ -2,10 +2,11 @@ package main
 
 import (
 	"fmt"
-	"time"
+	// "time"
 
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
+	gs "github.com/phaikawl/gosui"
 	skia "github.com/phaikawl/gosui/skia"
 )
 
@@ -21,26 +22,40 @@ func main() {
 	}
 	defer glfw.Terminate()
 
-	window, err := glfw.CreateWindow(640, 480, "Testing", nil, nil)
+	w, h := 800, 600
+	window, err := glfw.CreateWindow(w, h, "Testing", nil, nil)
 	if err != nil {
 		panic(err)
 	}
 
 	window.MakeContextCurrent()
-	w, h := window.GetSize()
 	initGL(w, h)
 	b := new(skia.Backend)
 	b.Init(w, h)
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 
+	root := gs.NewRootElement()
+	bg := gs.NewRectElement(root, gs.MakeRectWH(0, 0, w, h))
+	bg.FillColor = gs.Color{255, 255, 255, 255}
+	bg.ZIndex = -1000000
+	rect := gs.NewRectElement(root, gs.MakeRectWH(10, 10, 100, 100))
+	rect.FillColor = gs.Color{255, 0, 0, 255}
+	needUpdate := true
+
 	for !window.ShouldClose() {
+		cw, ch := window.GetSize()
+		if cw != w || ch != h {
+			needUpdate = true
+		}
+		if needUpdate {
+			window.SwapBuffers()
+			root.Redraw(b, root)
+			needUpdate = false
+			b.Flush()
+			window.SwapBuffers()
+		}
 		//Do OpenGL stuff
-		b.StartLoop()
-		b.DrawButton(0, 0, 50, 20, 20)
-		b.EndLoop()
-		window.SwapBuffers()
 		glfw.PollEvents()
-		time.Sleep(200 * time.Millisecond)
 	}
 	b.Die()
 }
