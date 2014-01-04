@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	// "time"
+	"time"
 
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
@@ -32,7 +32,6 @@ func main() {
 	initGL(w, h)
 	b := new(skia.Backend)
 	b.Init(w, h)
-	gl.Clear(gl.COLOR_BUFFER_BIT)
 
 	root := gs.NewRootElement()
 	bg := gs.NewRectElement(root, gs.MakeRectWH(0, 0, w, h))
@@ -40,14 +39,21 @@ func main() {
 	bg.ZIndex = -1000000
 	rect := gs.NewRectElement(root, gs.MakeRectWH(10, 10, 100, 100))
 	rect.FillColor = gs.Color{255, 0, 0, 255}
-	needUpdate := true
+	rect.Appr.(*gs.RectShape).SetAllRadii(15)
+	needUpdate := false
+	continuousRedraw := true
+	time.AfterFunc(200*time.Millisecond, func() {
+		continuousRedraw = false
+	})
 
 	for !window.ShouldClose() {
 		cw, ch := window.GetSize()
 		if cw != w || ch != h {
+			w, h = cw, ch
+			b.UpdateWindowSize(cw, ch)
 			needUpdate = true
 		}
-		if needUpdate {
+		if needUpdate || continuousRedraw {
 			window.SwapBuffers()
 			root.Redraw(b, root)
 			needUpdate = false

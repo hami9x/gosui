@@ -4,6 +4,7 @@ package skia
 // #include "gosui/skia.h"
 import "C"
 import (
+	// "fmt"
 	gs "github.com/phaikawl/gosui"
 	"image"
 )
@@ -25,6 +26,11 @@ func (b *Backend) Init(w, h int) {
 	b.r = r
 }
 
+func toCRect(rect image.Rectangle) (crect C.Rect) {
+	crect.min, crect.max = toCPoint(rect.Min), toCPoint(rect.Max)
+	return crect
+}
+
 func toCPoint(sp image.Point) (p C.Point) {
 	p.x = C.int(sp.X)
 	p.y = C.int(sp.Y)
@@ -32,8 +38,9 @@ func toCPoint(sp image.Point) (p C.Point) {
 }
 
 func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]image.Point, paint gs.Paint) {
-	var crect C.Rect
-	crect.min, crect.max = toCPoint(rect.Min), toCPoint(rect.Max)
+	crect := toCRect(rect)
+	// fmt.Printf("%v : %v\n", crect.min.x, crect.min.y)
+
 	var cpaint C.Paint
 	cpaint.fillColor = toSkColor(paint.FillColor)
 	cpaint.strokeColor = toSkColor(paint.StrokeColor)
@@ -63,4 +70,12 @@ func (b *Backend) Save() {
 
 func (b *Backend) Restore() {
 	C.Restore(b.r, b.saveCnt)
+}
+
+func (b *Backend) ClipRect(rect image.Rectangle) {
+	C.ClipRect(b.r, toCRect(rect))
+}
+
+func (b *Backend) UpdateWindowSize(w, h int) {
+	C.UpdateWindowSize(b.r, C.int(w), C.int(h))
 }

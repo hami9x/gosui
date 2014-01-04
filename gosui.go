@@ -3,6 +3,7 @@ package gosui
 import (
 	"container/list"
 	// "fmt"
+	"github.com/go-gl/gl"
 	"image"
 	"image/color"
 	"sort"
@@ -51,11 +52,19 @@ type Element struct {
 	children [](*Element)
 	treeLev  int //The number that represents this element's depth in the tree, the root element has tier=0
 	area     image.Rectangle
-	appr     Appearance
+	Appr     Appearance
 	Paint
 	ZIndex float32
 	_alg   AlgData
 }
+
+func (e *Element) X() int { return e.area.Min.X }
+
+func (e *Element) Y() int { return e.area.Min.Y }
+
+func (e *Element) W() int { return e.area.Max.X - e.area.Min.X }
+
+func (e *Element) H() int { return e.area.Max.Y - e.area.Min.Y }
 
 func (e *Element) IsBehind(e2 *Element) bool {
 	if e.ZIndex == e2.ZIndex {
@@ -114,9 +123,8 @@ func (alg OverlappedAlgorithm) fetchOverlappingLeafElems(target *Element, e *Ele
 	for _, o := range e.children {
 		if target.area.Overlaps(o.area) && (o != target) && (!alg.hasAdded(o)) {
 			// fmt.Printf("%v :: %v\n", target.area, o.area)
-			if o.IsLeaf() && target.IsBehind(o) {
+			if o.IsLeaf() {
 				alg.addToRedrawList(o, li)
-				li = alg.fetchOverlappingLeafElems(o, root, root, li)
 			} else {
 				li = alg.fetchOverlappingLeafElems(target, o, root, li)
 			}
@@ -131,7 +139,7 @@ type RectShape struct {
 
 func NewRectElement(parent *Element, area image.Rectangle) *Element {
 	e := new(Element).AddTo(parent)
-	e.appr = new(RectShape)
+	e.Appr = new(RectShape)
 	e.area = area
 	return e
 }
@@ -154,14 +162,14 @@ func NewRootElement() (r *Element) {
 	r = new(Element)
 	r.treeLev = 0
 	r.ZIndex = 0
-	r.appr = &NoAppearance{}
+	r.Appr = &NoAppearance{}
 	r.area = MakeRect(0, 0, MaxInt, MaxInt)
 	return r
 }
 
 func (e *Element) AddTo(parent *Element) *Element {
 	parent.children = append(parent.children, e)
-	e.appr = &NoAppearance{}
+	e.Appr = &NoAppearance{}
 	e.parent = parent
 	e.treeLev = parent.treeLev + 1
 	e.ZIndex = 0
@@ -175,7 +183,7 @@ func (e *Element) Draw(backend BackendPtr) {
 	l := MakeDrawPriorityList(li)
 	sort.Sort(l)
 	for _, o := range l {
-		o.appr.render(o, backend)
+		o.Appr.render(o, backend)
 	}
 }
 
@@ -210,8 +218,10 @@ func (e *Element) Redraw(backend BackendPtr, root *Element) {
 	alg.fetchOverlappingLeafElems(e, root, root, itemsToRedraw)
 	l := MakeDrawPriorityList(itemsToRedraw)
 	sort.Sort(l)
+	gl.Enable(gl.SCISSOR_TEST)
 	for _, o := range l {
-		o.Clear(backend)
+		gl.Scissor(o.X(), o.Y(), o.W(), o.H())
 		o.Draw(backend)
 	}
+	gl.Disable(gl.SCISSOR_TEST)
 }

@@ -51,11 +51,10 @@ func (s *MySuite) TestRedraw(c *chk.C) {
 	r2.ZIndex = 1
 	r3 := NewRectElement(root, MakeRect(0, 0, 300, 300))
 	r3.ZIndex = -1
-	NewRectElement(root, MakeRect(99, 99, 100, 100))
+	NewRectElement(root, MakeRect(101, 101, 102, 102))
 	backend := new(DummyBackend)
 	r1.Redraw(backend, root)
-	c.Check(backend.c, chk.Equals, 6) //r1, r2 and "r4" are redrawn
-	//the 3rd aren't redrawn because it is behind r1
+	c.Check(backend.c, chk.Equals, 3) //r1, r2, r3 are redrawn
 }
 
 func BenchmarkDisplayEngine(t *testing.B) {
