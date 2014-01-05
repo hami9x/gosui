@@ -5,8 +5,8 @@ package skia
 import "C"
 import (
 	// "fmt"
-	gs "github.com/phaikawl/gosui"
 	"image"
+	gs "github.com/phaikawl/gosui/native"
 )
 
 func toSkColor(c gs.Color) C.Color {
@@ -76,6 +76,6 @@ func (b *Backend) ClipRect(rect image.Rectangle) {
 	C.ClipRect(b.r, toCRect(rect))
 }
 
-func (b *Backend) UpdateWindowSize(w, h int) {
+func (b *Backend) UpdateViewportSize(w, h int) {
 	C.UpdateWindowSize(b.r, C.int(w), C.int(h))
 }
