@@ -39,23 +39,73 @@ func NoStroke(fillColor Color) (p Paint) {
 	return p
 }
 
-type Appearance interface {
-	render(*Element, BackendPtr)
+type Shape interface {
+	render(IElement, BackendPtr)
 }
 
-type NoAppearance struct{}
+type NoShape struct{}
 
-func (*NoAppearance) render(e *Element, b BackendPtr) {}
+func (*NoShape) render(e *Element, b BackendPtr) {}
 
 type Element struct {
-	parent   *Element
-	children [](*Element)
-	treeLev  int //The number that represents this element's depth in the tree, the root element has tier=0
-	area     image.Rectangle
-	Appr     Appearance
+	parent  *AbstractElement
+	treeLev int //The number that represents this element's depth in the tree, the root element has tier=0
+	area    image.Rectangle
+	zIndex  float32
 	Paint
-	ZIndex float32
-	_alg   AlgData
+	_alg AlgData
+}
+
+type IElement interface {
+	BaseElement() *Element
+	IsConcrete() bool
+	AllConcreteDescns() *list.List //Get all concrete descendants
+}
+
+type ConcreteElement struct {
+	Element
+	shape Shape
+}
+
+type AbstractElement struct {
+	Element
+	children []IElement
+}
+
+func (e *Element) ZIndex() float32 {
+	return e.zIndex
+}
+
+func (e *AbstractElement) setZIndex(z float32) {
+	li := e.AllConcreteDescns()
+	for o := li.Front(); o != nil; o = o.Next() {
+		o.Value.(*ConcreteElement).zIndex += z
+	}
+}
+
+func (e *ConcreteElement) SetZIndex(z float32) {
+	e.zIndex = z
+}
+
+func (e *AbstractElement) IsConcrete() bool {
+	return false
+}
+
+func (e *ConcreteElement) IsConcrete() bool {
+	return true
+}
+
+func (e *ConcreteElement) RectShape() *RectShape {
+	return e.shape.(*RectShape)
+}
+
+type RectShape struct {
+	borderRadiis [4]image.Point
+}
+
+func (r *RectShape) render(ei IElement, backend BackendPtr) {
+	e := ei.(*ConcreteElement)
+	backend.DrawRect(e.area, r.borderRadiis, e.Paint)
 }
 
 func (e *Element) X() int { return e.area.Min.X }
@@ -66,32 +116,43 @@ func (e *Element) W() int { return e.area.Max.X - e.area.Min.X }
 
 func (e *Element) H() int { return e.area.Max.Y - e.area.Min.Y }
 
-func (e *Element) IsBehind(e2 *Element) bool {
-	if e.ZIndex == e2.ZIndex {
-		return e.treeLev <= e2.treeLev
+func (e *ConcreteElement) IsBehind(e2 *ConcreteElement) bool {
+	if e.zIndex == e2.zIndex {
+		return e.treeLev < e2.treeLev
 	}
-	return e.ZIndex < e2.ZIndex
+	return e.zIndex < e2.zIndex
 }
 
-func (e *Element) fetchDescendants(li *list.List) *list.List {
-	for _, o := range e.children {
-		li.PushBack(o)
-		li = o.fetchDescendants(li)
+func (e *AbstractElement) BaseElement() *Element {
+	return &e.Element
+}
+
+func (e *ConcreteElement) BaseElement() *Element {
+	return &e.Element
+}
+
+func (e *AbstractElement) fetchConcreteDescns(li *list.List) *list.List {
+	for _, oi := range e.children {
+		if o, isConcrete := oi.(*ConcreteElement); isConcrete {
+			li.PushBack(o)
+			continue
+		}
+		o := oi.(*AbstractElement)
+		o.fetchConcreteDescns(li)
 	}
 	return li
 }
 
-func (e *Element) AllDescendants() (li *list.List) {
+func (e *AbstractElement) AllConcreteDescns() (li *list.List) {
 	li = list.New()
-	li = e.fetchDescendants(li)
+	li = e.fetchConcreteDescns(li)
 	return li
 }
 
-func (e *Element) IsLeaf() bool {
-	if len(e.children) == 0 {
-		return true
-	}
-	return false
+func (e *ConcreteElement) AllConcreteDescns() (li *list.List) {
+	li = list.New()
+	li.PushBack(e)
+	return li
 }
 
 //Data for algorithm purposes
@@ -102,15 +163,15 @@ type AlgData struct {
 //Algorithm to get overlapping elements, used for lazy redrawing
 type OverlappedAlgorithm struct{}
 
-func InitOverlappedAlgorithm(root *Element) (alg OverlappedAlgorithm) {
-	l := root.AllDescendants()
+func InitOverlappedAlgorithm(root *AbstractElement) (alg OverlappedAlgorithm) {
+	l := root.AllConcreteDescns()
 	for o := l.Front(); o != nil; o = o.Next() {
-		o.Value.(*Element)._alg.addedToRedraw = false
+		o.Value.(*ConcreteElement)._alg.addedToRedraw = false
 	}
 	return alg
 }
 
-func (alg OverlappedAlgorithm) addToRedrawList(e *Element, li *list.List) {
+func (alg OverlappedAlgorithm) addToRedrawList(e *ConcreteElement, li *list.List) {
 	e._alg.addedToRedraw = true
 	li.PushBack(e)
 }
@@ -119,27 +180,26 @@ func (alg OverlappedAlgorithm) hasAdded(e *Element) bool {
 	return e._alg.addedToRedraw
 }
 
-func (alg OverlappedAlgorithm) fetchOverlappingLeafElems(target *Element, e *Element, root *Element, li *list.List) *list.List {
-	for _, o := range e.children {
-		if target.area.Overlaps(o.area) && (o != target) && (!alg.hasAdded(o)) {
+func (alg OverlappedAlgorithm) fetchOverlappingConcreteElems(target IElement, e *AbstractElement, root *AbstractElement, li *list.List) *list.List {
+	for _, oi := range e.children {
+		o := oi.BaseElement()
+		t := target.BaseElement()
+		if t.area.Overlaps(o.area) && (o != t) && (!alg.hasAdded(o)) {
 			// fmt.Printf("%v :: %v\n", target.area, o.area)
-			if o.IsLeaf() {
-				alg.addToRedrawList(o, li)
+			if oi.IsConcrete() {
+				alg.addToRedrawList(oi.(*ConcreteElement), li)
 			} else {
-				li = alg.fetchOverlappingLeafElems(target, o, root, li)
+				li = alg.fetchOverlappingConcreteElems(target, oi.(*AbstractElement), root, li)
 			}
 		}
 	}
 	return li
 }
 
-type RectShape struct {
-	borderRadiis [4]image.Point
-}
-
-func NewRectElement(parent *Element, area image.Rectangle) *Element {
-	e := new(Element).AddTo(parent)
-	e.Appr = new(RectShape)
+func NewRectElement(parent *AbstractElement, area image.Rectangle) *ConcreteElement {
+	e := new(ConcreteElement)
+	parent.AddChild(e)
+	e.shape = new(RectShape)
 	e.area = area
 	return e
 }
@@ -154,37 +214,39 @@ func (r *RectShape) SetAllRadii(rad int) {
 	r.SetAll4RadiiXY(rad, rad)
 }
 
-func (r *RectShape) render(e *Element, backend BackendPtr) {
-	backend.DrawRect(e.area, r.borderRadiis, e.Paint)
-}
-
-func NewRootElement() (r *Element) {
-	r = new(Element)
+func NewRootElement() (r *AbstractElement) {
+	r = new(AbstractElement)
 	r.treeLev = 0
-	r.ZIndex = 0
-	r.Appr = &NoAppearance{}
+	r.zIndex = 0
 	r.area = MakeRect(0, 0, MaxInt, MaxInt)
 	return r
 }
 
-func (e *Element) AddTo(parent *Element) *Element {
-	parent.children = append(parent.children, e)
-	e.Appr = &NoAppearance{}
+func NewAbstractElement(parent *AbstractElement) (r *AbstractElement) {
+	r = new(AbstractElement)
+	parent.AddChild(r)
+	return r
+}
+
+func (parent *AbstractElement) AddChild(ei IElement) {
+	parent.children = append(parent.children, ei)
+	e := ei.BaseElement()
 	e.parent = parent
 	e.treeLev = parent.treeLev + 1
-	e.ZIndex = 0
-	return e
+	e.zIndex = 0
 }
 
 //Draw the element and all its descendants
-func (e *Element) Draw(backend BackendPtr) {
-	li := e.AllDescendants()
-	li.PushFront(e)
-	l := MakeDrawPriorityList(li)
+func (e *AbstractElement) Draw(backend BackendPtr) {
+	l := MakeDrawPriorityList(e.AllConcreteDescns())
 	sort.Sort(l)
 	for _, o := range l {
-		o.Appr.render(o, backend)
+		o.Draw(backend)
 	}
+}
+
+func (e *ConcreteElement) Draw(backend BackendPtr) {
+	e.shape.render(e, backend)
 }
 
 func rectNoRounding() (r [4]image.Point) {
@@ -195,12 +257,12 @@ func (e *Element) Clear(backend BackendPtr) {
 	backend.DrawRect(e.area, rectNoRounding(), Paint{ColorWHITE(), 0, ColorWHITE()})
 }
 
-type DrawPriorityList [](*Element)
+type DrawPriorityList [](*ConcreteElement)
 
 func MakeDrawPriorityList(li *list.List) DrawPriorityList {
-	l := make([](*Element), li.Len())
+	l := make([](*ConcreteElement), li.Len())
 	for o, i := li.Front(), 0; o != nil; o, i = o.Next(), i+1 {
-		l[i] = o.Value.(*Element)
+		l[i] = o.Value.(*ConcreteElement)
 	}
 	return DrawPriorityList(l)
 }
@@ -211,11 +273,14 @@ func (l DrawPriorityList) Less(i, j int) bool {
 	return l[i].IsBehind(l[j])
 }
 
-func (e *Element) Redraw(backend BackendPtr, root *Element) {
+func Redraw(e IElement, backend BackendPtr, root *AbstractElement) {
 	alg := InitOverlappedAlgorithm(root)
 	itemsToRedraw := list.New()
-	alg.addToRedrawList(e, itemsToRedraw)
-	alg.fetchOverlappingLeafElems(e, root, root, itemsToRedraw)
+	d := e.AllConcreteDescns()
+	for o := d.Front(); o != nil; o = o.Next() {
+		alg.addToRedrawList(o.Value.(*ConcreteElement), itemsToRedraw)
+	}
+	alg.fetchOverlappingConcreteElems(e, root, root, itemsToRedraw)
 	l := MakeDrawPriorityList(itemsToRedraw)
 	sort.Sort(l)
 	gl.Enable(gl.SCISSOR_TEST)

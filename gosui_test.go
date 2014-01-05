@@ -47,31 +47,30 @@ func (s *MySuite) TestDraw(c *chk.C) {
 func (s *MySuite) TestRedraw(c *chk.C) {
 	root := NewRootElement()
 	r1 := NewRectElement(root, MakeRect(0, 0, 100, 100))
-	r2 := NewRectElement(root, MakeRect(70, 70, 120, 120))
-	r2.ZIndex = 1
-	r3 := NewRectElement(root, MakeRect(0, 0, 300, 300))
-	r3.ZIndex = -1
+	NewRectElement(root, MakeRect(70, 70, 120, 120))
+	NewRectElement(root, MakeRect(0, 0, 300, 300))
 	NewRectElement(root, MakeRect(101, 101, 102, 102))
 	backend := new(DummyBackend)
-	r1.Redraw(backend, root)
+	Redraw(r1, backend, root)
 	c.Check(backend.c, chk.Equals, 3) //r1, r2, r3 are redrawn
 }
 
 func BenchmarkDisplayEngine(t *testing.B) {
 	rand.Seed(time.Now().Unix())
 	root := NewRootElement()
-	l := make([](*Element), 0)
+	l := make([](*AbstractElement), 0)
 	l = append(l, root)
 	for i := 1; i < 1000; i += 1 {
-		rect := NewRectElement(l[random(0, len(l)-1)],
+		p := NewAbstractElement(l[random(0, len(l)-1)])
+		NewRectElement(p,
 			MakeRectWH(random(0, 500), random(0, 500), random(0, 500), random(0, 500)))
-		l = append(l, rect)
+		l = append(l, p)
 	}
 
 	backend := new(DummyBackend)
 	root.Draw(backend)
-	for i := 1; i < 100; i += 1 {
-		l[random(0, len(l)-1)].Redraw(backend, root)
+	for i := 1; i < 1000; i += 1 {
+		Redraw(l[random(0, len(l)-1)], backend, root)
 	}
 	fmt.Printf("\n %v objects drawn\n", (backend.c-1)/2)
 }

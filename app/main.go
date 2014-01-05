@@ -36,13 +36,13 @@ func main() {
 	root := gs.NewRootElement()
 	bg := gs.NewRectElement(root, gs.MakeRectWH(0, 0, w, h))
 	bg.FillColor = gs.Color{255, 255, 255, 255}
-	bg.ZIndex = -1000000
+	bg.SetZIndex(-1000000)
 	rect := gs.NewRectElement(root, gs.MakeRectWH(10, 10, 100, 100))
 	rect.FillColor = gs.Color{255, 0, 0, 255}
-	rect.Appr.(*gs.RectShape).SetAllRadii(15)
+	rect.RectShape().SetAllRadii(15)
 	needUpdate := false
 	continuousRedraw := true
-	time.AfterFunc(200*time.Millisecond, func() {
+	time.AfterFunc(500*time.Millisecond, func() {
 		continuousRedraw = false
 	})
 
@@ -55,7 +55,7 @@ func main() {
 		}
 		if needUpdate || continuousRedraw {
 			window.SwapBuffers()
-			root.Redraw(b, root)
+			gs.Redraw(root, b, root)
 			needUpdate = false
 			b.Flush()
 			window.SwapBuffers()
