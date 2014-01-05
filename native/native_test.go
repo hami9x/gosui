@@ -1,13 +1,14 @@
-package gosui
+package native
 
 import (
 	// "container/list"
 	"fmt"
 	"image"
-	chk "launchpad.net/gocheck"
 	"math/rand"
 	"testing"
 	"time"
+
+	chk "launchpad.net/gocheck"
 )
 
 func Test(t *testing.T) { chk.TestingT(t) }

@@ -19,13 +19,8 @@ type Paint struct {
 	StrokeColor Color
 }
 
-type BackendPtr interface {
+type DrawBackend interface {
 	DrawRect(image.Rectangle, [4]image.Point, Paint)
-
-	Init(int, int)
-	Flush()
-	UpdateViewportSize(int, int)
-	Die()
 }
 
 func ColorWHITE() Color { return Color{255, 255, 255, 255} }
@@ -45,12 +40,12 @@ func NoStroke(fillColor Color) (p Paint) {
 }
 
 type Shape interface {
-	render(IElement, BackendPtr)
+	render(IElement, DrawBackend)
 }
 
 type NoShape struct{}
 
-func (*NoShape) render(e *Element, b BackendPtr) {}
+func (*NoShape) render(e *Element, b DrawBackend) {}
 
 type Element struct {
 	parent  *AbstractElement
@@ -108,7 +103,7 @@ type RectShape struct {
 	borderRadiis [4]image.Point
 }
 
-func (r *RectShape) render(ei IElement, backend BackendPtr) {
+func (r *RectShape) render(ei IElement, backend DrawBackend) {
 	e := ei.(*ConcreteElement)
 	backend.DrawRect(e.area, r.borderRadiis, e.Paint)
 }
@@ -242,7 +237,7 @@ func (parent *AbstractElement) AddChild(ei IElement) {
 }
 
 //Draw the element and all its descendants
-func (e *AbstractElement) Draw(backend BackendPtr) {
+func (e *AbstractElement) Draw(backend DrawBackend) {
 	l := MakeDrawPriorityList(e.AllConcreteDescns())
 	sort.Sort(l)
 	for _, o := range l {
@@ -250,7 +245,7 @@ func (e *AbstractElement) Draw(backend BackendPtr) {
 	}
 }
 
-func (e *ConcreteElement) Draw(backend BackendPtr) {
+func (e *ConcreteElement) Draw(backend DrawBackend) {
 	e.shape.render(e, backend)
 }
 
@@ -258,7 +253,7 @@ func rectNoRounding() (r [4]image.Point) {
 	return r
 }
 
-func (e *Element) Clear(backend BackendPtr) {
+func (e *Element) Clear(backend DrawBackend) {
 	backend.DrawRect(e.area, rectNoRounding(), Paint{ColorWHITE(), 0, ColorWHITE()})
 }
 
@@ -278,7 +273,7 @@ func (l DrawPriorityList) Less(i, j int) bool {
 	return l[i].IsBehind(l[j])
 }
 
-func Redraw(e IElement, backend BackendPtr, root *AbstractElement) {
+func Redraw(e IElement, backend DrawBackend, root *AbstractElement) {
 	alg := InitOverlappedAlgorithm(root)
 	itemsToRedraw := list.New()
 	d := e.AllConcreteDescns()

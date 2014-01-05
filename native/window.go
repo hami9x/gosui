@@ -8,9 +8,17 @@ import (
 	glfw "github.com/go-gl/glfw3"
 )
 
+type RenderBackend interface {
+	DrawBackend
+	Init(int, int)
+	Flush()
+	UpdateViewportSize(int, int)
+	Die()
+}
+
 type Window struct {
 	glw *glfw.Window
-	b   BackendPtr
+	b   RenderBackend
 
 	root *AbstractElement
 }
@@ -23,7 +31,7 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 	fmt.Printf("%v: %v\n", err, desc)
 }
 
-func NewWindow(b BackendPtr, w, h int, title string) *Window {
+func NewWindow(b RenderBackend, w, h int, title string) *Window {
 	glfw.SetErrorCallback(errorCallback)
 
 	if !glfw.Init() {
