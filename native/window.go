@@ -8,6 +8,8 @@ import (
 	glfw "github.com/go-gl/glfw3"
 )
 
+//RenderBackend does the real work of drawing and updating graphics
+//It may contain code that is specific to a library or backend, like skia
 type RenderBackend interface {
 	DrawBackend
 	Init(int, int)
@@ -16,6 +18,7 @@ type RenderBackend interface {
 	Die()
 }
 
+//Window is the application window
 type Window struct {
 	glw *glfw.Window
 	b   RenderBackend
@@ -23,6 +26,7 @@ type Window struct {
 	root *AbstractElement
 }
 
+//RootElement gets the root element
 func (wn *Window) RootElement() *AbstractElement {
 	return wn.root
 }
@@ -31,6 +35,7 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 	fmt.Printf("%v: %v\n", err, desc)
 }
 
+//NewWindow creates and return a new Windows
 func NewWindow(b RenderBackend, w, h int, title string) *Window {
 	glfw.SetErrorCallback(errorCallback)
 
@@ -50,10 +55,13 @@ func NewWindow(b RenderBackend, w, h int, title string) *Window {
 	return &Window{window, b, NewRootElement()}
 }
 
+//Size of the window
 func (wn *Window) Size() (w, h int) {
 	return wn.glw.GetSize()
 }
 
+//Loop is the main loop for the window, everything happens there
+//Call this method to get the window running
 func (wn *Window) Loop() {
 	b := wn.b
 
