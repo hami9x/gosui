@@ -6,7 +6,9 @@ import "C"
 import (
 	// "fmt"
 	"image"
-	gs "github.com/phaikawl/gosui/native"
+
+	"github.com/go-gl/gl"
+	gs "github.com/phaikawl/gosui"
 )
 
 func toSkColor(c gs.Color) C.Color {
@@ -78,4 +80,14 @@ func (b *Backend) ClipRect(rect image.Rectangle) {
 
 func (b *Backend) UpdateViewportSize(w, h int) {
 	C.UpdateWindowSize(b.r, C.int(w), C.int(h))
+}
+
+//DrawElementsInArea is used for redrawing
+func (b *Backend) DrawElementsInArea(l gs.DrawPriorityList, area image.Rectangle) {
+	gl.Enable(gl.SCISSOR_TEST)
+	gl.Scissor(area.Min.X, area.Min.Y, area.Dx(), area.Dy())
+	for _, o := range l {
+		o.Draw(b)
+	}
+	gl.Disable(gl.SCISSOR_TEST)
 }

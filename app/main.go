@@ -1,10 +1,17 @@
+//Test app for gosui
 package main
 
-import gs "github.com/phaikawl/gosui/native"
-import skia "github.com/phaikawl/gosui/native/skia"
+import gs "github.com/phaikawl/gosui"
+import gsr "github.com/phaikawl/gosui/native/skia"
+
+//import gse "github.com/phaikawl/gosui/web"
+
+import gse "github.com/phaikawl/gosui/native"
+
+//import gsr "github.com/phaikawl/gosui/web/htmlcanvas"
 
 func main() {
-	window := gs.NewWindow(new(skia.Backend), 800, 600, "Gosui test app")
+	window := gse.NewWindow(new(gsr.Backend), 800, 600, "Gosui test app")
 	root := window.RootElement()
 	w, h := window.Size()
 	bg := gs.NewRectElement(root, gs.MakeRectWH(0, 0, w, h))

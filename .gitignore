@@ -22,3 +22,4 @@ _testmain.go
 *.exe
 app/app
 tags
+web/htmlcanvas/fabricjs/dist/fabric.js

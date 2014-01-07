@@ -1,4 +1,4 @@
-package native
+package gosui
 
 import (
 	// "container/list"
@@ -25,6 +25,12 @@ func (b *DummyBackend) DrawRect(rect image.Rectangle, radiis [4]image.Point, pai
 	// fmt.Printf("I'm drawing %v ^^\n", rect)
 	b.c += 1
 	// fmt.Print("*")
+}
+
+func (b *DummyBackend) DrawElementsInArea(l DrawPriorityList, area image.Rectangle) {
+	for _, o := range l {
+		o.Draw(b)
+	}
 }
 
 func random(min, max int) int {

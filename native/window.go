@@ -6,12 +6,13 @@ import (
 
 	"github.com/go-gl/gl"
 	glfw "github.com/go-gl/glfw3"
+	gs "github.com/phaikawl/gosui"
 )
 
 //RenderBackend does the real work of drawing and updating graphics
 //It may contain code that is specific to a library or backend, like skia
 type RenderBackend interface {
-	DrawBackend
+	gs.RenderBackend
 	Init(int, int)
 	Flush()
 	UpdateViewportSize(int, int)
@@ -23,11 +24,11 @@ type Window struct {
 	glw *glfw.Window
 	b   RenderBackend
 
-	root *AbstractElement
+	root *gs.AbstractElement
 }
 
 //RootElement gets the root element
-func (wn *Window) RootElement() *AbstractElement {
+func (wn *Window) RootElement() *gs.AbstractElement {
 	return wn.root
 }
 
@@ -52,7 +53,7 @@ func NewWindow(b RenderBackend, w, h int, title string) *Window {
 	b.Init(w, h)
 	setupGL(w, h)
 
-	return &Window{window, b, NewRootElement()}
+	return &Window{window, b, gs.NewRootElement()}
 }
 
 //Size of the window
@@ -87,7 +88,7 @@ func (wn *Window) Loop() {
 		}
 		if needUpdate || continuousRedraw {
 			wn.glw.SwapBuffers()
-			Redraw(wn.root, b, wn.root)
+			gs.Redraw(wn.root, b, wn.root)
 			needUpdate = false
 			b.Flush()
 			wn.glw.SwapBuffers()
