@@ -13,7 +13,6 @@ import (
 //It may contain code that is specific to a library or backend, like skia
 type RenderBackend interface {
 	gs.RenderBackend
-	Init(int, int)
 	Flush()
 	UpdateViewportSize(int, int)
 	Die()
@@ -63,7 +62,7 @@ func (wn *Window) Size() (w, h int) {
 
 //Loop is the main loop for the window, everything happens there
 //Call this method to get the window running
-func (wn *Window) Loop() {
+func (wn *Window) Start() {
 	b := wn.b
 
 	needUpdate := false

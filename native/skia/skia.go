@@ -39,7 +39,7 @@ func toCPoint(sp image.Point) (p C.Point) {
 	return p
 }
 
-func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]image.Point, paint gs.Paint) {
+func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]int, paint gs.Paint) {
 	crect := toCRect(rect)
 	// fmt.Printf("%v : %v\n", crect.min.x, crect.min.y)
 
@@ -49,7 +49,7 @@ func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]image.Point, paint gs
 	cpaint.strokeWidth = C.int(paint.StrokeWidth)
 	var cRads [4]C.Point
 	for i := 0; i < 4; i += 1 {
-		cRads[i] = toCPoint(radiis[i])
+		cRads[i] = toCPoint(image.Point{radiis[i], radiis[i]})
 	}
 	C.DrawRect(b.r, cpaint, crect, (*C.Point)(&cRads[0]))
 }

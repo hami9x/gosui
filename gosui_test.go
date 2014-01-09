@@ -21,11 +21,13 @@ type DummyBackend struct {
 	c int
 }
 
-func (b *DummyBackend) DrawRect(rect image.Rectangle, radiis [4]image.Point, paint Paint) {
+func (b *DummyBackend) DrawRect(rect image.Rectangle, radiis [4]int, paint Paint) {
 	// fmt.Printf("I'm drawing %v ^^\n", rect)
 	b.c += 1
 	// fmt.Print("*")
 }
+
+func (b *DummyBackend) Init(w, h int) {}
 
 func (b *DummyBackend) DrawElementsInArea(l DrawPriorityList, area image.Rectangle) {
 	for _, o := range l {

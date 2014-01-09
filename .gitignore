@@ -23,3 +23,7 @@ _testmain.go
 app/app
 tags
 web/htmlcanvas/fabricjs/dist/fabric.js
+testapp/dist
+testapp/jsbuild/jsbuild
+gosui.js
+testapp/testapp

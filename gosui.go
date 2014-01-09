@@ -21,11 +21,12 @@ type Paint struct {
 
 // DrawBackend is the one that actually draws things on the window
 type DrawBackend interface {
-	DrawRect(image.Rectangle, [4]image.Point, Paint)
+	DrawRect(image.Rectangle, [4]int, Paint)
 }
 
 type RenderBackend interface {
 	DrawBackend
+	Init(int, int)
 	DrawElementsInArea(DrawPriorityList, image.Rectangle)
 }
 
@@ -52,9 +53,9 @@ type shape interface {
 }
 
 // RectShape holds information specific to displayed rectangles (rounded).
-// Currently it holds border radius of 4 corners
+// Currently it holds corner radius of 4 corners
 type RectShape struct {
-	borderRadiis [4]image.Point
+	cornerRadiis [4]int
 }
 
 // Element holds information about an element in the window
@@ -137,7 +138,7 @@ func (e *ConcreteElement) IsConcrete() bool {
 
 func (r *RectShape) render(ei IElement, backend DrawBackend) {
 	e := ei.(*ConcreteElement)
-	backend.DrawRect(e.Area, r.borderRadiis, e.Paint)
+	backend.DrawRect(e.Area, r.cornerRadiis, e.Paint)
 }
 
 // X method returns element's top-left x coordinate
@@ -248,16 +249,20 @@ func NewRectElement(parent *AbstractElement, area image.Rectangle) *ConcreteElem
 	return e
 }
 
-// SetAll4RadiiXY sets all 4 corners of the RectShape to have the radius x, y
-func (r *RectShape) SetAll4RadiiXY(x, y int) {
+// SetAllCornerRadiusTo sets all 4 corners of the RectShape to have same radius rad
+func (r *RectShape) SetAllCornerRadiusTo(rad int) {
 	for i := 0; i < 4; i++ {
-		r.borderRadiis[i] = image.Point{x, y}
+		r.cornerRadiis[i] = rad
 	}
 }
 
-// SetAllRadii sets all 4 corners of the RectShape to have the same radius rad
-func (r *RectShape) SetAllRadii(rad int) {
-	r.SetAll4RadiiXY(rad, rad)
+type RectCornersRad struct {
+	TopLeft, TopRight, BotLeft, BotRight int
+}
+
+func (r *RectShape) SetCornerRadiis(conf RectCornersRad) {
+	r.cornerRadiis[0], r.cornerRadiis[1] = conf.TopLeft, conf.TopRight
+	r.cornerRadiis[2], r.cornerRadiis[3] = conf.BotLeft, conf.BotRight
 }
 
 // NewRootElement creates and returns the root element
