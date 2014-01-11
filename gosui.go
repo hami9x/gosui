@@ -7,7 +7,9 @@ import (
 	"sort"
 )
 
-const maxInt = int(^uint(0) >> 1)
+const (
+	maxInt = int(^uint(0) >> 1)
+)
 
 // Color is actually image/color.RGBA
 type Color color.RGBA
@@ -22,6 +24,7 @@ type Paint struct {
 // DrawBackend is the one that actually draws things on the window
 type DrawBackend interface {
 	DrawRect(image.Rectangle, [4]int, Paint)
+	DrawText(image.Point, *TextShape, Paint) (int, int)
 }
 
 type RenderBackend interface {
@@ -90,7 +93,38 @@ type AbstractElement struct {
 	children []IElement
 }
 
-// SetCustomData is used by something to add data to the element
+type FontStyle struct {
+	Bold, Italic bool
+}
+
+var (
+	BoldItalic = FontStyle{true, true}
+	Bold       = FontStyle{true, false}
+	Italic     = FontStyle{false, true}
+	Regular    = FontStyle{false, false}
+)
+
+type Font struct {
+	Family string
+	Size   int
+	Style  FontStyle
+}
+
+type TextShape struct {
+	Content  string
+	Font     Font
+	Editable bool
+}
+
+func (e *ConcreteElement) TextShape() *TextShape {
+	return e.shape.(*TextShape)
+}
+
+func (e *ConcreteElement) UpdateSize(w, h int) {
+	e.Area.Max = image.Point{e.Area.Min.X + w, e.Area.Min.Y + h}
+}
+
+// SetData is used by something to add data to the element
 // for its own purpose, like for an algorithm
 func (e *Element) SetData(key string, data interface{}) {
 	if e.cData == nil {
@@ -139,6 +173,11 @@ func (e *ConcreteElement) IsConcrete() bool {
 func (r *RectShape) render(ei IElement, backend DrawBackend) {
 	e := ei.(*ConcreteElement)
 	backend.DrawRect(e.Area, r.cornerRadiis, e.Paint)
+}
+
+func (s *TextShape) render(ei IElement, backend DrawBackend) {
+	e := ei.(*ConcreteElement)
+	e.UpdateSize(backend.DrawText(e.Area.Min, s, e.Paint))
 }
 
 // X method returns element's top-left x coordinate
@@ -238,6 +277,21 @@ func (alg OverlappedAlgorithm) fetchOverlappingConcreteElems(target IElement, e 
 		}
 	}
 	return li
+}
+
+func NewTextInputElement(parent *AbstractElement, x, y int, font Font) *ConcreteElement {
+	return NewTextElement(parent, x, y, font, true)
+}
+
+func NewTextElement(parent *AbstractElement, x, y int, font Font, editable bool) *ConcreteElement {
+	e := new(ConcreteElement)
+	parent.AddChild(e)
+	ts := new(TextShape)
+	ts.Editable = editable
+	ts.Font = font
+	e.shape = ts
+	e.Area = image.Rectangle{image.Point{x, y}, image.Point{x, y}}
+	return e
 }
 
 // NewRectElement creates a new rsectangle concrete element

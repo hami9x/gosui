@@ -1,17 +1,20 @@
 //Test app for gosui
 package main
 
-import gs "github.com/phaikawl/gosui"
+import (
+	gs "github.com/phaikawl/gosui"
 
-//import gsr "github.com/phaikawl/gosui/native/skia"
+	gsr "github.com/phaikawl/gosui/native/skia" //Native rendering backend
 
-import gse "github.com/phaikawl/gosui/web"
+	//gse "github.com/phaikawl/gosui/web" //Web engine
 
-//import gse "github.com/phaikawl/gosui/native"
+	gse "github.com/phaikawl/gosui/native" //Native engine
 
-import gsr "github.com/phaikawl/gosui/web/htmlcanvas"
+	//gsr "github.com/phaikawl/gosui/web/htmlcanvas" //Web rendering backend
+)
 
 func main() {
+	gse.AddAssetDir(gse.LocalDir("dist"))
 	window := gse.NewWindow(new(gsr.Backend), 800, 600, "Gosui test app")
 	root := window.RootElement()
 	w, h := window.Size()
@@ -25,5 +28,9 @@ func main() {
 	rect2.FillColor = gs.Color{120, 0, 30, 100}
 	rect2.StrokeColor = gs.Color{0, 155, 20, 255}
 	rect2.RectShape().SetCornerRadiis(gs.RectCornersRad{10, 30, 5, 0})
+	input := gs.NewTextInputElement(root, 30, 70, gs.Font{"Arial", 18, gs.BoldItalic})
+	input.FillColor = gs.Color{0, 0, 40, 255}
+	input.SetZIndex(1000)
+	input.TextShape().Content = "Hello world!"
 	window.Start()
 }

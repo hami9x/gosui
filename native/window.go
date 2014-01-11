@@ -35,7 +35,7 @@ func errorCallback(err glfw.ErrorCode, desc string) {
 	fmt.Printf("%v: %v\n", err, desc)
 }
 
-//NewWindow creates and return a new Windows
+//NewWindow creates and return a new Window
 func NewWindow(b RenderBackend, w, h int, title string) *Window {
 	glfw.SetErrorCallback(errorCallback)
 
@@ -109,4 +109,8 @@ func setupGL(w, h int) {
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 	gl.Disable(gl.DEPTH_TEST)
 	gl.Hint(gl.LINE_SMOOTH_HINT|gl.LINE_SMOOTH_HINT, gl.NICEST)
+}
+
+func GetFontFilename(family string) {
+
 }

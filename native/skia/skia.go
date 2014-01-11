@@ -2,10 +2,12 @@ package skia
 
 // #cgo LDFLAGS: -lskia_go_renderer
 // #include "gosui/skia.h"
+// #include "stdlib.h"
 import "C"
 import (
 	// "fmt"
 	"image"
+	"unsafe"
 
 	"github.com/go-gl/gl"
 	gs "github.com/phaikawl/gosui"
@@ -39,19 +41,46 @@ func toCPoint(sp image.Point) (p C.Point) {
 	return p
 }
 
+func toCPaint(paint gs.Paint) (cpaint C.Paint) {
+	cpaint.fillColor = toSkColor(paint.FillColor)
+	cpaint.strokeColor = toSkColor(paint.StrokeColor)
+	cpaint.strokeWidth = C.int(paint.StrokeWidth)
+	return cpaint
+}
+
 func (b *Backend) DrawRect(rect image.Rectangle, radiis [4]int, paint gs.Paint) {
 	crect := toCRect(rect)
 	// fmt.Printf("%v : %v\n", crect.min.x, crect.min.y)
 
-	var cpaint C.Paint
-	cpaint.fillColor = toSkColor(paint.FillColor)
-	cpaint.strokeColor = toSkColor(paint.StrokeColor)
-	cpaint.strokeWidth = C.int(paint.StrokeWidth)
 	var cRads [4]C.Point
 	for i := 0; i < 4; i += 1 {
 		cRads[i] = toCPoint(image.Point{radiis[i], radiis[i]})
 	}
-	C.DrawRect(b.r, cpaint, crect, (*C.Point)(&cRads[0]))
+	C.DrawRect(b.r, toCPaint(paint), crect, (*C.Point)(&cRads[0]))
+}
+
+func btoci(b bool) C.short {
+	if b {
+		return C.short(1)
+	}
+	return C.short(0)
+}
+
+func toCfStyle(fs gs.FontStyle) (cfs C.FontStyle) {
+	cfs.bold = btoci(fs.Bold)
+	cfs.italic = btoci(fs.Italic)
+	return cfs
+}
+
+func (b *Backend) DrawText(pos image.Point, text *gs.TextShape, paint gs.Paint) (int, int) {
+	byteCont := []byte(text.Content)
+	ff := C.CString(text.Font.Family)
+	cpaint := toCPaint(paint)
+	cpaint.textSize = C.int(text.Font.Size)
+	defer C.free(unsafe.Pointer(ff))
+	csize := C.DrawText(b.r, cpaint, toCPoint(pos),
+		unsafe.Pointer(&byteCont[0]), C.int(len(byteCont)), ff, toCfStyle(text.Font.Style))
+	return int(csize.x), int(csize.y)
 }
 
 func (b *Backend) Die() {

@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"go/build"
-	gopherjs "github.com/neelance/gopherjs/api"
+	gopherjs "github.com/phaikawl/gopherjs/api"
 )
 
 const defaultDistPath = "dist/web"
