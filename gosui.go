@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"image"
 	"image/color"
+	"log"
 	"sort"
 )
 
@@ -61,6 +62,8 @@ type RectShape struct {
 	cornerRadiis [4]int
 }
 
+type EventHandler interface{}
+
 // Element holds information about an element in the window
 type Element struct {
 	parent  *AbstractElement
@@ -68,7 +71,8 @@ type Element struct {
 	Area    image.Rectangle
 	zIndex  float32
 	Paint
-	cData map[string]interface{}
+	cData   map[string]interface{}
+	Handler EventHandler
 }
 
 // IElement is the common interface for AbstractElement and ConcreteElement
@@ -114,6 +118,7 @@ type TextShape struct {
 	Content  string
 	Font     Font
 	Editable bool
+	origin   image.Point
 }
 
 func (e *ConcreteElement) TextShape() *TextShape {
@@ -177,7 +182,9 @@ func (r *RectShape) render(ei IElement, backend DrawBackend) {
 
 func (s *TextShape) render(ei IElement, backend DrawBackend) {
 	e := ei.(*ConcreteElement)
-	e.UpdateSize(backend.DrawText(e.Area.Min, s, e.Paint))
+	w, h := backend.DrawText(s.origin, s, e.Paint)
+	e.Area.Min = image.Point{s.origin.X, s.origin.Y - h}
+	e.UpdateSize(w, h)
 }
 
 // X method returns element's top-left x coordinate
@@ -261,7 +268,8 @@ func (alg OverlappedAlgorithm) addToRedrawList(e *ConcreteElement, li *list.List
 }
 
 func (alg OverlappedAlgorithm) hasAdded(e *Element) bool {
-	return e.GetData("addedToRedraw").(bool)
+	v := e.GetData("addedToRedraw")
+	return v != nil && v.(bool)
 }
 
 func (alg OverlappedAlgorithm) fetchOverlappingConcreteElems(target IElement, e *AbstractElement, root *AbstractElement, li *list.List) *list.List {
@@ -279,8 +287,19 @@ func (alg OverlappedAlgorithm) fetchOverlappingConcreteElems(target IElement, e 
 	return li
 }
 
+type InputHandler struct {
+	e *ConcreteElement
+}
+
+func (h InputHandler) OnMouseEvent(evt *MouseEvent) bool {
+	log.Printf("Mouse clicked on %v at %v\n", h.e.Area, evt.Pos)
+	return true
+}
+
 func NewTextInputElement(parent *AbstractElement, x, y int, font Font) *ConcreteElement {
-	return NewTextElement(parent, x, y, font, true)
+	te := NewTextElement(parent, x, y, font, true)
+	te.Handler = InputHandler{te}
+	return te
 }
 
 func NewTextElement(parent *AbstractElement, x, y int, font Font, editable bool) *ConcreteElement {
@@ -289,8 +308,8 @@ func NewTextElement(parent *AbstractElement, x, y int, font Font, editable bool)
 	ts := new(TextShape)
 	ts.Editable = editable
 	ts.Font = font
+	ts.origin = image.Point{x, y}
 	e.shape = ts
-	e.Area = image.Rectangle{image.Point{x, y}, image.Point{x, y}}
 	return e
 }
 
@@ -330,8 +349,9 @@ func NewRootElement() (r *AbstractElement) {
 
 // NewAbstractElement creates and returns a new AbstractElement.
 // It adds the element as a child.
-func NewAbstractElement(parent *AbstractElement) (r *AbstractElement) {
+func NewAbstractElement(parent *AbstractElement, area image.Rectangle) (r *AbstractElement) {
 	r = new(AbstractElement)
+	r.Area = area
 	parent.AddChild(r)
 	return r
 }

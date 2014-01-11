@@ -24,11 +24,12 @@ func main() {
 	rect := gs.NewRectElement(root, gs.MakeRectWH(10, 10, 100, 100))
 	rect.FillColor = gs.Color{255, 0, 0, 255}
 	rect.RectShape().SetAllCornerRadiusTo(10)
-	rect2 := gs.NewRectElement(root, gs.MakeRectWH(50, 0, 120, 400))
+	tbox := gs.NewAbstractElement(root, gs.MakeRectWH(20, 20, 300, 300))
+	rect2 := gs.NewRectElement(tbox, gs.MakeRectWH(50, 0, 120, 400))
 	rect2.FillColor = gs.Color{120, 0, 30, 100}
 	rect2.StrokeColor = gs.Color{0, 155, 20, 255}
 	rect2.RectShape().SetCornerRadiis(gs.RectCornersRad{10, 30, 5, 0})
-	input := gs.NewTextInputElement(root, 30, 70, gs.Font{"Arial", 18, gs.BoldItalic})
+	input := gs.NewTextInputElement(tbox, 30, 70, gs.Font{"Arial", 18, gs.BoldItalic})
 	input.FillColor = gs.Color{0, 0, 40, 255}
 	input.SetZIndex(1000)
 	input.TextShape().Content = "Hello world!"

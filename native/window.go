@@ -2,6 +2,9 @@ package native
 
 import (
 	"fmt"
+	"image"
+	"log"
+	"math"
 	"time"
 
 	"github.com/go-gl/gl"
@@ -60,6 +63,13 @@ func (wn *Window) Size() (w, h int) {
 	return wn.glw.GetSize()
 }
 
+func toBool(m glfw.ModifierKey) bool {
+	if m == 0 {
+		return false
+	}
+	return true
+}
+
 //Loop is the main loop for the window, everything happens there
 //Call this method to get the window running
 func (wn *Window) Start() {
@@ -67,6 +77,45 @@ func (wn *Window) Start() {
 
 	needUpdate := false
 	continuousRedraw := true
+
+	wn.glw.SetMouseButtonCallback(func(w *glfw.Window,
+		button glfw.MouseButton, action glfw.Action, mod glfw.ModifierKey) {
+
+		var btn gs.MouseButton
+		switch button {
+		case glfw.MouseButtonLeft:
+			btn = gs.MouseButtonLeft
+		case glfw.MouseButtonRight:
+			btn = gs.MouseButtonRight
+		case glfw.MouseButtonMiddle:
+			btn = gs.MouseButtonMiddle
+		default:
+			log.Print("Mouse button unsupported.")
+			return
+		}
+
+		var act gs.EventAction
+		switch action {
+		case glfw.Press:
+			act = gs.EventPress
+		case glfw.Release:
+			act = gs.EventRelease
+		case glfw.Repeat:
+			act = gs.EventRepeat
+		}
+		x, y := w.GetCursorPosition()
+		go gs.HandleMouse(&gs.MouseEvent{
+			Button: btn,
+			Pos:    image.Point{int(math.Floor(x)), int(math.Floor(y))},
+			Mod: gs.Modifiers{
+				Control: toBool(glfw.ModControl | mod),
+				Shift:   toBool(glfw.ModShift | mod),
+				Alt:     toBool(glfw.ModAlt | mod),
+				Super:   toBool(glfw.ModSuper | mod),
+			},
+			Action: act,
+		}, wn.root)
+	})
 
 	defer glfw.Terminate()
 	defer wn.b.Die()
